@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>D435 Object Scanner</title>
+  <script>
+    document.documentElement.dataset.theme =
+      localStorage.getItem("codex-artifact-theme") || "dark";
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="meta">Intel RealSense D435i / local metric scanner</div>
+        <h1>D435 Object Scanner</h1>
+      </div>
+      <div class="top-actions">
+        <a class="button quiet" href="/help">Scanning guide</a>
+        <button class="button quiet" id="theme-toggle" type="button">Light mode</button>
+      </div>
+    </header>
+
+    <div class="status-strip" aria-label="Application status">
+      <div class="status-cell">
+        <span class="meta">Camera</span>
+        <strong id="camera-status">OFFLINE</strong>
+        <span id="camera-detail">Start the camera to preview depth.</span>
+      </div>
+      <div class="status-cell">
+        <span class="meta">USB link</span>
+        <strong id="usb-status">UNKNOWN</strong>
+        <span id="usb-detail">USB 3 is strongly recommended.</span>
+      </div>
+      <div class="status-cell">
+        <span class="meta">Capture</span>
+        <strong id="capture-status">IDLE</strong>
+        <span id="capture-detail">0 saved RGB-D frames.</span>
+      </div>
+      <div class="status-cell">
+        <span class="meta">Reconstruction</span>
+        <strong id="process-status">WAITING</strong>
+        <span id="process-detail">Record a full orbit first.</span>
+      </div>
+    </div>
+
+    <main class="workspace">
+      <section class="preview-panel panel" aria-labelledby="preview-title">
+        <div class="panel-head">
+          <div>
+            <div class="meta">Live aligned streams</div>
+            <h2 id="preview-title">RGB + depth coverage</h2>
+          </div>
+          <div class="action-row">
+            <button class="button" id="start-camera" type="button">Start camera</button>
+            <button class="button quiet" id="stop-camera" type="button" disabled>Stop camera</button>
+          </div>
+        </div>
+        <div class="preview-frame">
+          <img id="camera-preview" alt="Live RGB and aligned depth preview">
+          <div class="preview-empty" id="preview-empty">
+            <strong>Camera preview is off</strong>
+            <span>Use a direct USB 3 cable, then start the camera.</span>
+          </div>
+        </div>
+        <div class="capture-guidance">
+          <span class="status-tag medium">MOVEMENT</span>
+          <p>Keep the object fixed. Move the camera slowly, maintain heavy overlap, cover high and low angles, and finish near the starting view.</p>
+        </div>
+      </section>
+
+      <aside class="control-panel panel" aria-labelledby="controls-title">
+        <div class="panel-head compact">
+          <div>
+            <div class="meta">Scan controls</div>
+            <h2 id="controls-title">Capture one object</h2>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Scan name</span>
+          <input id="scan-name" type="text" value="object-01" maxlength="60" autocomplete="off">
+        </label>
+        <div class="field-grid">
+          <label class="field">
+            <span>Saved frames / sec</span>
+            <input id="save-fps" type="number" value="5" min="1" max="15" step="1">
+          </label>
+          <label class="field">
+            <span>Max depth, metres</span>
+            <input id="max-depth" type="number" value="1.5" min="0.4" max="4" step="0.1">
+          </label>
+        </div>
+
+        <div class="primary-actions">
+          <button class="button primary" id="start-scan" type="button" disabled>Start orbit capture</button>
+          <button class="button" id="stop-scan" type="button" disabled>Stop capture</button>
+        </div>
+
+        <div class="process-box">
+          <div class="process-line">
+            <span class="status-tag high" id="process-label">TODO</span>
+            <span id="progress-text">Capture 150–300 frames.</span>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <div class="progress-value" id="progress-value"></div>
+          </div>
+          <button class="button full" id="process-scan" type="button" disabled>Stitch and measure</button>
+        </div>
+
+        <div class="message" id="message" aria-live="polite"></div>
+      </aside>
+    </main>
+
+    <section class="pipeline" aria-label="Scanning pipeline">
+      <div class="pipeline-step">
+        <span class="step-index">01</span>
+        <div><strong>Capture</strong><span>Aligned RGB + metric depth</span></div>
+      </div>
+      <div class="pipeline-step">
+        <span class="step-index">02</span>
+        <div><strong>Track</strong><span>Estimate camera motion</span></div>
+      </div>
+      <div class="pipeline-step">
+        <span class="step-index">03</span>
+        <div><strong>Fuse</strong><span>TSDF surface integration</span></div>
+      </div>
+      <div class="pipeline-step">
+        <span class="step-index">04</span>
+        <div><strong>Isolate</strong><span>Remove table + cluster object</span></div>
+      </div>
+      <div class="pipeline-step">
+        <span class="step-index">05</span>
+        <div><strong>Measure</strong><span>Principal-axis dimensions</span></div>
+      </div>
+    </section>
+
+    <section class="result-section" id="result-section" hidden>
+      <div class="section-head">
+        <div>
+          <div class="meta">Latest reconstruction</div>
+          <h2>Object model</h2>
+        </div>
+        <span class="status-tag medium" id="quality-label">CHECK</span>
+      </div>
+
+      <div class="result-layout">
+        <div class="model-panel panel">
+          <canvas id="model-canvas" width="900" height="560" aria-label="Interactive reconstructed point cloud"></canvas>
+          <div class="canvas-help">Drag to rotate · scroll to zoom · dimensions use metric depth scale</div>
+        </div>
+        <div class="measurement-panel">
+          <div class="dimension-stack">
+            <div class="dimension">
+              <span class="meta">Length</span>
+              <strong id="length-mm">—</strong>
+              <span>millimetres</span>
+            </div>
+            <div class="dimension">
+              <span class="meta">Width</span>
+              <strong id="width-mm">—</strong>
+              <span>millimetres</span>
+            </div>
+            <div class="dimension">
+              <span class="meta">Height</span>
+              <strong id="height-mm">—</strong>
+              <span>millimetres</span>
+            </div>
+          </div>
+          <div class="result-notice">
+            <span class="status-tag medium">STL + PLY</span>
+            <p>The STL is scaled to millimetres for slicers and contains geometry only. Validate critical dimensions and inspect inferred or hidden surfaces before printing.</p>
+          </div>
+          <div class="download-list" id="download-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="history-section">
+      <div class="section-head">
+        <div>
+          <div class="meta">Saved locally</div>
+          <h2>Recent scans</h2>
+        </div>
+      </div>
+      <div class="scan-list" id="scan-list">
+        <div class="empty-row">No scans yet.</div>
+      </div>
+    </section>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

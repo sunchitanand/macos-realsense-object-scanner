@@ -1,0 +1,14 @@
+.venv/
+.native/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+scans/
+demo_scans/
+.coverage
+htmlcov/
+build/
+dist/
+.DS_Store

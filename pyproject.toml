@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "macos-realsense-object-scanner"
+version = "0.1.0"
+description = "Local RGB-D object scanning and metric reconstruction with Intel RealSense D435i"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "MIT"
+authors = [
+  { name = "Sunchit Anand", email = "sunchit.anand@gmail.com" },
+]
+keywords = ["realsense", "d435i", "rgb-d", "3d-scanning", "open3d", "macos"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Multimedia :: Graphics :: 3D Modeling",
+  "Topic :: Scientific/Engineering :: Image Processing",
+]
+dependencies = [
+  "Flask>=3.1,<4",
+  "numpy>=1.26,<2",
+  "opencv-python-headless>=4.10,<4.14",
+  "open3d==0.19.0",
+  "pyrealsense2>=2.58.4,<2.59; sys_platform != 'darwin'",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9",
+  "ruff>=0.12,<1",
+]
+macos-worker = [
+  "pyinstaller==6.22.3",
+  "pyinstaller-hooks-contrib==2026.7",
+]
+
+[project.scripts]
+realsense-object-scanner = "object_scanner.app:main"
+
+[project.urls]
+Homepage = "https://github.com/sunchitanand/macos-realsense-object-scanner"
+Issues = "https://github.com/sunchitanand/macos-realsense-object-scanner/issues"
+Source = "https://github.com/sunchitanand/macos-realsense-object-scanner"
+
+[tool.setuptools.packages.find]
+include = ["object_scanner*"]
+
+[tool.setuptools.package-data]
+object_scanner = [
+  "templates/*.html",
+  "static/*.css",
+  "static/*.js",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

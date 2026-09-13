@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to scan an object — D435 Object Scanner</title>
+  <script>
+    document.documentElement.dataset.theme =
+      localStorage.getItem("codex-artifact-theme") || "dark";
+  </script>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --panel: #111;
+      --hover: #171717;
+      --text: #ededed;
+      --muted: #a1a1a1;
+      --line: #2e2e2e;
+      color-scheme: dark;
+    }
+    html[data-theme="light"] {
+      --bg: #fff;
+      --panel: #fafafa;
+      --hover: #f5f5f5;
+      --text: #171717;
+      --muted: #666;
+      --line: #eaeaea;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--muted); text-underline-offset: 3px; }
+    a:hover { color: var(--text); }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+    .page { width: min(1080px, calc(100% - 32px)); margin: 0 auto; padding: 18px 0 52px; }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 13px;
+      border-bottom: 1px solid var(--line);
+    }
+    .meta, .label { color: var(--muted); font: 500 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    button, .button {
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    button:hover, .button:hover { background: var(--hover); }
+    .hero { padding: 22px 0 17px; }
+    h1 {
+      max-width: 760px;
+      margin: 5px 0 8px;
+      font-size: clamp(27px, 4vw, 39px);
+      line-height: 1.1;
+      letter-spacing: -0.035em;
+    }
+    .lede { max-width: 760px; margin: 0; color: var(--muted); font-size: 16px; }
+    .verdict {
+      margin-top: 16px;
+      padding: 13px 15px;
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--text);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+    .verdict p { margin: 4px 0 0; color: var(--muted); }
+    .content-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 205px;
+      gap: 40px;
+      align-items: start;
+    }
+    .content-main { min-width: 0; }
+    .toc-rail {
+      position: sticky;
+      top: 18px;
+      padding: 12px 0 12px 18px;
+      border-left: 1px solid var(--line);
+    }
+    .toc-rail ol { margin: 6px 0 0; padding: 0; list-style: none; }
+    .toc-rail a { display: block; padding: 5px 0; font-size: 12px; text-decoration: none; }
+    .toc-rail a.active { color: var(--text); font-weight: 600; }
+    .section { padding: 26px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; }
+    h2 { margin: 0 0 8px; font-size: 18px; line-height: 1.25; letter-spacing: -0.015em; }
+    h3 { margin: 0 0 4px; font-size: 14px; }
+    p { max-width: 760px; }
+    .sequence { margin: 14px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+    .sequence li {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 12px;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .sequence b { color: var(--muted); font: 600 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .sequence strong { display: block; margin-bottom: 2px; }
+    .sequence span { color: var(--muted); font-size: 13px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 11px;
+      margin-top: 13px;
+    }
+    .item { padding: 13px; border: 1px solid var(--line); border-radius: 8px; }
+    .item p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .status {
+      display: inline-flex;
+      padding: 3px 7px;
+      border: 2px solid var(--text);
+      border-radius: 5px;
+      font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .status.high { border-width: 5px; }
+    .status.low { border-width: 1px; border-style: dotted; }
+    pre {
+      overflow-x: auto;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    @media (max-width: 850px) {
+      .content-layout { grid-template-columns: 1fr; }
+      .toc-rail {
+        position: static;
+        grid-row: 1;
+        padding: 14px 0;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+    }
+    @media (max-width: 620px) {
+      .top { align-items: flex-start; flex-direction: column; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <div class="meta"><a href="/">D435 Object Scanner</a> / scanning guide</div>
+      <div>
+        <a class="button" href="/">Back to scanner</a>
+        <button id="theme-toggle" type="button">Light mode</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="meta">Free-form RGB-D object capture</div>
+      <h1>Move the camera around a fixed object and keep every frame easy to match</h1>
+      <p class="lede">The D435i supplies metric depth, but it does not know its position in the room. The application estimates camera motion by matching each RGB-D frame to the previous accepted frame.</p>
+      <div class="verdict">
+        <strong>Best setup: one object, a clear flat support, textured surroundings, diffuse light, and a slow closed orbit.</strong>
+        <p>Start with objects between roughly 10 and 50 centimetres. Shiny, transparent, black, thin, repetitive, or deforming objects are substantially harder.</p>
+      </div>
+    </section>
+
+    <div class="content-layout">
+      <main class="content-main">
+        <section class="section" id="setup">
+          <h2>Prepare the capture</h2>
+          <div class="grid">
+            <div class="item">
+              <span class="status high">REQUIRED</span>
+              <h3>USB 3 connection</h3>
+              <p>Connect the D435i directly with a SuperSpeed data cable. USB 2 will drop frames and destabilize registration.</p>
+            </div>
+            <div class="item">
+              <span class="status">REQUIRED</span>
+              <h3>Object stays fixed</h3>
+              <p>Move only the camera. If the object moves relative to the table or background, the scan cannot share one coordinate system.</p>
+            </div>
+            <div class="item">
+              <span class="status">HELPFUL</span>
+              <h3>Textured mat</h3>
+              <p>Place printed paper, painter’s tape, or another non-repeating texture around the object to improve camera tracking.</p>
+            </div>
+            <div class="item">
+              <span class="status low">AVOID</span>
+              <h3>Reflective geometry</h3>
+              <p>Glass, mirrors, glossy black plastic, chrome, and hair-like details create missing or incorrect depth.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="orbit">
+          <h2>Capture a complete orbit</h2>
+          <ol class="sequence">
+            <li><b>01</b><div><strong>Frame the whole object</strong><span>Keep it centred and keep the background beyond your maximum depth setting where possible.</span></div></li>
+            <li><b>02</b><div><strong>Start at a distinctive view</strong><span>A corner or asymmetrical feature is easier to recognize than a flat featureless face.</span></div></li>
+            <li><b>03</b><div><strong>Move slowly around the object</strong><span>Aim for only a few centimetres of camera movement between saved frames and at least 70% visual overlap.</span></div></li>
+            <li><b>04</b><div><strong>Add a higher and lower ring</strong><span>Tilt down for the top, then lower the camera slightly for undersides visible above the support plane.</span></div></li>
+            <li><b>05</b><div><strong>Close the loop</strong><span>Finish near the exact starting view. A 30–60 second scan at 5 saved frames per second is a useful first attempt.</span></div></li>
+          </ol>
+        </section>
+
+        <section class="section" id="measurements">
+          <h2>Understand the measurements</h2>
+          <p>The application removes the dominant support plane, clusters the remaining geometry, and fits an oriented bounding box to the selected object cluster. Length, width, and height are the three principal-axis extents sorted from largest to smallest.</p>
+          <div class="grid">
+            <div class="item">
+              <span class="status">METRIC</span>
+              <h3>Real-world scale</h3>
+              <p>Depth values and the mesh are stored in metres. The interface reports the bounding-box extents in millimetres.</p>
+            </div>
+            <div class="item">
+              <span class="status high">VERIFY</span>
+              <h3>Not metrology-grade</h3>
+              <p>Tracking drift, edge noise, occlusion, and support-plane extraction can change the result. Validate critical dimensions with calipers.</p>
+            </div>
+          </div>
+          <p>The exported <code>object_printable.stl</code> is rescaled from metres to millimetres so it imports at the expected size in common slicers. STL does not carry color. The application also reports whether the generated surface is watertight and manifold; a <strong>CHECK</strong> result should be repaired before printing.</p>
+        </section>
+
+        <section class="section" id="failure">
+          <h2>Diagnose a bad scan</h2>
+          <div class="grid">
+            <div class="item"><span class="status high">TRACKING</span><h3>Duplicated or smeared surfaces</h3><p>Move slower, increase texture, shorten the scan, and avoid sudden rotations or featureless close-ups.</p></div>
+            <div class="item"><span class="status high">DEPTH</span><h3>Large holes</h3><p>Change viewing angle and lighting; reduce glossy or transparent surfaces; keep the camera inside its useful range.</p></div>
+            <div class="item"><span class="status">CLUSTER</span><h3>Wrong object measured</h3><p>Clear nearby clutter, reduce maximum depth, move the background farther away, and keep the intended object closest to the first view.</p></div>
+            <div class="item"><span class="status">COVERAGE</span><h3>Missing rear or top</h3><p>Add overlapping height rings. Every surface must be visible in several depth frames to become a stable mesh.</p></div>
+          </div>
+        </section>
+
+        <section class="section" id="launch">
+          <h2>Launch from Terminal</h2>
+          <pre><code>git clone https://github.com/sunchitanand/macos-realsense-object-scanner.git
+cd macos-realsense-object-scanner
+./run_object_scanner.sh
+
+# Then open:
+http://127.0.0.1:5055</code></pre>
+          <p>The launcher installs the pinned macOS runtime and resets camera helpers automatically. A direct USB 3 data cable is strongly recommended.</p>
+        </section>
+      </main>
+
+      <aside class="toc-rail" aria-label="On this page">
+        <div class="label">On this page</div>
+        <ol>
+          <li><a href="#setup">Prepare</a></li>
+          <li><a href="#orbit">Capture orbit</a></li>
+          <li><a href="#measurements">Measurements</a></li>
+          <li><a href="#failure">Bad scans</a></li>
+          <li><a href="#launch">Launch</a></li>
+        </ol>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const toggle = document.getElementById("theme-toggle");
+    const syncThemeToggle = () => {
+      const dark = document.documentElement.dataset.theme === "dark";
+      toggle.textContent = dark ? "Light mode" : "Dark mode";
+    };
+    syncThemeToggle();
+    toggle.addEventListener("click", () => {
+      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem("codex-artifact-theme", next);
+      syncThemeToggle();
+    });
+
+    const tocLinks = [...document.querySelectorAll(".toc-rail a[href^='#']")];
+    const tocSections = tocLinks.map((link) => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+    if (tocLinks.length) tocLinks[0].classList.add("active");
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (!visible) return;
+      tocLinks.forEach((link) => link.classList.toggle(
+        "active",
+        link.getAttribute("href") === `#${visible.target.id}`
+      ));
+    }, { rootMargin: "-15% 0px -70% 0px", threshold: 0 });
+    tocSections.forEach((section) => observer.observe(section));
+  </script>
+</body>
+</html>
